@@ -154,3 +154,18 @@ These are the 59 genre filters available on the website (extracted dynamically u
   * **Query Parameters**:
     * `q` (Optional): Main search term.
     * `page` (Optional): Page index (defaults to `1`).
+
+---
+
+## ☁️ Cloud Deployment (e.g. Render.com)
+
+When deploying to cloud platforms like Render, the app must bind to `0.0.0.0` (all network interfaces) and listen to the dynamic port assigned via the environment variable `$PORT`.
+
+### Configuration:
+In your Render Dashboard, configure the following:
+* **Build Command**: `pip install fastapi uvicorn httpx scrapling`
+* **Start Command**:
+  ```bash
+  uvicorn api:app --host 0.0.0.0 --port $PORT
+  ```
+*(Note: Do not use `--reload` in production environments).*
