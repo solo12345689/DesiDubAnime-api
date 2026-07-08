@@ -103,6 +103,10 @@ def read_root():
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Dashboard file not found</h1>", status_code=404)
 
+@app.head("/")
+def read_root_head():
+    return HTMLResponse(content="", status_code=200)
+
 # Helper to parse sidebar lists (Top Airing, Most Popular, Completed)
 def parse_sidebar_list(sel_section):
     items = []
