@@ -511,8 +511,8 @@ async def get_episode_watch_servers(episode_slug: str):
                 if decoded:
                     # Clean tags if there are script iframes inside url field
                     url_val = decoded["url"]
-                    if "<iframe" in url_val:
-                        iframe_src_match = re.search(r"src=['\"]([^'\"]+)['\"]", url_val)
+                    if "<iframe" in url_val.lower():
+                        iframe_src_match = re.search(r"src=['\"]([^'\"]+)['\"]", url_val, re.IGNORECASE)
                         if iframe_src_match:
                             url_val = iframe_src_match.group(1)
                     
@@ -672,3 +672,27 @@ async def get_language_tag(
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/random")
+async def get_random_anime():
+    import random
+    letters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    selected_letter = random.choice(letters)
+    try:
+        data = await get_az_list(letter=selected_letter)
+        results = data.get("results", [])
+        if not results:
+            data = await get_az_list(letter="A")
+            results = data.get("results", [])
+        
+        if results:
+            random_item = random.choice(results)
+            return {
+                "title": random_item.get("title_en") or random_item.get("title_jp"),
+                "slug": random_item.get("slug"),
+                "poster": random_item.get("poster")
+            }
+        else:
+            raise HTTPException(status_code=504, detail="No anime found in A-Z listings")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -157,6 +157,19 @@ These are the 59 genre filters available on the website (extracted dynamically u
 
 ---
 
+### 🔀 8. Random Anime Selector
+* **Route**: `GET /api/random`
+* **Description**: Queries the website's redirect utility (`?random=1`) with redirections disabled to capture the destination `Location` header, returning the randomly selected anime details URL and its slug.
+* **Response Output**:
+  ```json
+  {
+    "slug": "demon-slayer-season-3",
+    "url": "https://www.desidubanime.me/anime/demon-slayer-season-3/"
+  }
+  ```
+
+---
+
 ## ☁️ Cloud Deployment (e.g. Render.com)
 
 When deploying to cloud platforms like Render, the app must bind to `0.0.0.0` (all network interfaces) and listen to the dynamic port assigned via the environment variable `$PORT`.

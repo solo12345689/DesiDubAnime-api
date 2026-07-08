@@ -456,6 +456,10 @@
                         <span class="badge badge-get">GET</span>
                         <span class="endpoint-path">/api/anime/{slug}/episodes</span>
                     </button>
+                    <button class="endpoint-item" onclick="selectEndpoint('random')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/random</span>
+                    </button>
                 </div>
             </div>
 
@@ -596,6 +600,12 @@
                     { name: 'q', type: 'query', label: 'Search Keyword', default: 'slime' },
                     { name: 'page', type: 'query', label: 'Page Index', default: '1' }
                 ]
+            },
+            random: {
+                method: 'GET',
+                path: '/api/random',
+                desc: 'Fetch a completely random anime slug and direct details link from the catalog by capturing the site redirect.',
+                fields: []
             }
         };
 
