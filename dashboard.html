@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DesiDub Scraper API Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #08090f;
+            --bg-surface: rgba(17, 18, 27, 0.65);
+            --bg-input: rgba(30, 32, 47, 0.5);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-primary: #00f2fe;
+            --accent-secondary: #7f00ff;
+            --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --badge-get: #10b981;
+            --badge-post: #3b82f6;
+            --shadow-glow: 0 0 20px rgba(0, 242, 254, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(127, 0, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 242, 254, 0.08) 0%, transparent 40%);
+        }
+
+        header {
+            padding: 1.5rem 2rem;
+            background: rgba(8, 9, 15, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #000;
+            font-size: 1.2rem;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .logo-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #fff, var(--text-muted));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            flex: 1;
+            height: calc(100vh - 73px);
+        }
+
+        .sidebar {
+            background: rgba(12, 13, 21, 0.5);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .endpoint-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .endpoint-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            width: 100%;
+        }
+
+        .endpoint-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .endpoint-item.active {
+            background: rgba(0, 242, 254, 0.05);
+            border-color: rgba(0, 242, 254, 0.2);
+            box-shadow: inset 0 0 12px rgba(0, 242, 254, 0.02);
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            min-width: 42px;
+            text-align: center;
+        }
+
+        .badge-get {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--badge-get);
+        }
+
+        .badge-post {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--badge-post);
+        }
+
+        .endpoint-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .endpoint-item.active .endpoint-path {
+            color: var(--accent-primary);
+        }
+
+        .main-panel {
+            padding: 2rem;
+            overflow-y: auto;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 2rem;
+        }
+
+        .endpoint-header {
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .endpoint-title-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .endpoint-header-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .endpoint-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .playground {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 2rem;
+            height: 100%;
+        }
+
+        .interactive-form {
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: fit-content;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .label-type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--accent-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);
+        }
+
+        .execute-btn {
+            background: var(--accent-gradient);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0.85rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .execute-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.3);
+        }
+
+        .execute-btn:active {
+            transform: translateY(1px);
+        }
+
+        .results-panel {
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            overflow: hidden;
+        }
+
+        .results-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .results-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--badge-get);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .time-badge {
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .code-container {
+            position: relative;
+            height: 100%;
+            overflow: auto;
+            background: rgba(8, 9, 15, 0.4);
+        }
+
+        pre {
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #e5e7eb;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .json-key { color: #f472b6; }
+        .json-string { color: #34d399; }
+        .json-number { color: #fbbf24; }
+        .json-boolean { color: #60a5fa; }
+        .json-null { color: #a78bfa; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">D</div>
+            <div class="logo-title">DESIDUB SCRAPER API</div>
+            <div class="logo-subtitle">V1.0.0</div>
+        </div>
+        <a href="/docs" target="_blank" class="copy-btn" style="text-decoration: none;">Interactive Swagger Docs</a>
+    </header>
+
+    <div class="layout">
+        <div class="sidebar">
+            <div>
+                <div class="section-title">Home Feed</div>
+                <div class="endpoint-list">
+                    <button class="endpoint-item active" onclick="selectEndpoint('home')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/home</span>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Directory & Lists</div>
+                <div class="endpoint-list">
+                    <button class="endpoint-item" onclick="selectEndpoint('az-list')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/az-list</span>
+                    </button>
+                    <button class="endpoint-item" onclick="selectEndpoint('languages')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/languages</span>
+                    </button>
+                    <button class="endpoint-item" onclick="selectEndpoint('language-tag')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/language/{slug}</span>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Anime Info</div>
+                <div class="endpoint-list">
+                    <button class="endpoint-item" onclick="selectEndpoint('detail')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/anime/{slug}</span>
+                    </button>
+                    <button class="endpoint-item" onclick="selectEndpoint('episodes')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/anime/{slug}/episodes</span>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Streaming & Video</div>
+                <div class="endpoint-list">
+                    <button class="endpoint-item" onclick="selectEndpoint('watch')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/watch/{episode_slug}</span>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Search</div>
+                <div class="endpoint-list">
+                    <button class="endpoint-item" onclick="selectEndpoint('search-instant')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/search/instant</span>
+                    </button>
+                    <button class="endpoint-item" onclick="selectEndpoint('search-advanced')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/search/advanced</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="endpoint-header">
+                <div class="endpoint-title-row">
+                    <span class="badge badge-get" id="header-method" style="font-size: 0.9rem; padding: 4px 10px;">GET</span>
+                    <span class="endpoint-header-path" id="header-path">/api/home</span>
+                </div>
+                <div class="endpoint-desc" id="header-desc">
+                    Fetch full feed data from the homepage, including spotlights, latest releases, top airing, completed series, movies, upcoming items, and popular posts.
+                </div>
+            </div>
+
+            <div class="playground">
+                <div class="interactive-form">
+                    <div id="form-fields" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                        <!-- Dynamic inputs injected here -->
+                    </div>
+                    <button class="execute-btn" onclick="executeRequest()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        Send Request
+                    </button>
+                </div>
+
+                <div class="results-panel">
+                    <div class="results-header">
+                        <div class="results-meta">
+                            <span class="status-badge" id="res-status" style="display: none;">200 OK</span>
+                            <span class="time-badge" id="res-time" style="display: none;">0ms</span>
+                        </div>
+                        <button class="copy-btn" id="copy-response-btn" onclick="copyResponse()" style="display: none;">Copy JSON</button>
+                    </div>
+                    <div class="code-container">
+                        <pre id="json-output">// Click "Send Request" to fetch data...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const endpoints = {
+            home: {
+                method: 'GET',
+                path: '/api/home',
+                desc: 'Fetch full feed data from the homepage, including spotlights, latest releases, top airing, completed series, movies, upcoming items, and popular posts.',
+                fields: []
+            },
+            'az-list': {
+                method: 'GET',
+                path: '/api/az-list',
+                desc: 'List all animes matching a letter or digit filter.',
+                fields: [
+                    { name: 'letter', type: 'query', label: 'Filter Letter (A-Z, 0-9, or other)', default: 'B' }
+                ]
+            },
+            languages: {
+                method: 'GET',
+                path: '/api/languages',
+                desc: 'Retrieve all audio and subtitle languages available on the site.',
+                fields: []
+            },
+            'language-tag': {
+                method: 'GET',
+                path: '/api/language/{slug}',
+                desc: 'List all animes matching a specific language tag.',
+                fields: [
+                    { name: 'slug', type: 'path', label: 'Language Tag Slug', default: 'tamil' },
+                    { name: 'page', type: 'query', label: 'Page Index', default: '1' }
+                ]
+            },
+            detail: {
+                method: 'GET',
+                path: '/api/anime/{slug}',
+                desc: 'Fetch full metadata details, synopsis, season relations, post ID and tags for a specific anime.',
+                fields: [
+                    { name: 'slug', type: 'path', label: 'Anime Slug', default: 'fire-force' }
+                ]
+            },
+            episodes: {
+                method: 'GET',
+                path: '/api/anime/{slug}/episodes',
+                desc: 'Fetch paginated lists of episodes for a specific season post ID.',
+                fields: [
+                    { name: 'slug', type: 'path', label: 'Anime Slug', default: 'fire-force' },
+                    { name: 'postId', type: 'query', label: 'Post ID (Found in detail response)', default: '2036' },
+                    { name: 'page', type: 'query', label: 'Page Index', default: '1' },
+                    { name: 'order', type: 'query', label: 'Sort Order (asc/desc)', default: 'asc' }
+                ]
+            },
+            watch: {
+                method: 'GET',
+                path: '/api/watch/{episode_slug}',
+                desc: 'Scrape the streaming watch page, decode iframe source servers (like Filemoon, Streamhide), and output their absolute direct URLs.',
+                fields: [
+                    { name: 'episode_slug', type: 'path', label: 'Episode Watch Page Slug', default: 'enen-no-shouboutai-episode-1' }
+                ]
+            },
+            'search-instant': {
+                method: 'GET',
+                path: '/api/search/instant',
+                desc: 'Perform instant search queries returning matched titles, slugs, and poster previews.',
+                fields: [
+                    { name: 'query', type: 'query', label: 'Search Keyword', default: 'slime' }
+                ]
+            },
+            'search-advanced': {
+                method: 'GET',
+                path: '/api/search/advanced',
+                desc: 'Search the database using a query string with page counts.',
+                fields: [
+                    { name: 'q', type: 'query', label: 'Search Keyword', default: 'slime' },
+                    { name: 'page', type: 'query', label: 'Page Index', default: '1' }
+                ]
+            }
+        };
+
+        let activeEndpointKey = 'home';
+        let rawResponseText = "";
+
+        function selectEndpoint(key) {
+            activeEndpointKey = key;
+            const ep = endpoints[key];
+
+            // Update UI list items active class
+            document.querySelectorAll('.endpoint-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Update Header
+            document.getElementById('header-method').innerText = ep.method;
+            document.getElementById('header-path').innerText = ep.path;
+            document.getElementById('header-desc').innerText = ep.desc;
+
+            // Invalidate status badges
+            document.getElementById('res-status').style.display = 'none';
+            document.getElementById('res-time').style.display = 'none';
+            document.getElementById('copy-response-btn').style.display = 'none';
+            document.getElementById('json-output').innerHTML = '// Click "Send Request" to fetch data...';
+
+            // Build inputs
+            const form = document.getElementById('form-fields');
+            form.innerHTML = '';
+            
+            ep.fields.forEach(field => {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                group.innerHTML = `
+                    <div class="form-label">
+                        <span>${field.label}</span>
+                        <span class="label-type">${field.type === 'path' ? 'path parameter' : 'query parameter'}</span>
+                    </div>
+                    <input type="text" class="form-input" id="input-${field.name}" value="${field.default}">
+                `;
+                form.appendChild(group);
+            });
+        }
+
+        async function executeRequest() {
+            const ep = endpoints[activeEndpointKey];
+            let url = ep.path;
+            const queryParams = new URLSearchParams();
+
+            // Populate parameters
+            ep.fields.forEach(field => {
+                const val = document.getElementById(`input-${field.name}`).value.trim();
+                if (field.type === 'path') {
+                    url = url.replace(`{${field.name}}`, encodeURIComponent(val));
+                } else if (field.type === 'query' && val) {
+                    queryParams.append(field.name, val);
+                }
+            });
+
+            const finalQueryStr = queryParams.toString();
+            const fetchUrl = finalQueryStr ? `${url}?${finalQueryStr}` : url;
+
+            const outputEl = document.getElementById('json-output');
+            const statusEl = document.getElementById('res-status');
+            const timeEl = document.getElementById('res-time');
+            const copyBtn = document.getElementById('copy-response-btn');
+
+            outputEl.innerHTML = '<span style="color: var(--accent-primary);">Fetching data... Please wait...</span>';
+            statusEl.style.display = 'none';
+            timeEl.style.display = 'none';
+            copyBtn.style.display = 'none';
+
+            const startTime = performance.now();
+            try {
+                const response = await fetch(fetchUrl);
+                const duration = Math.round(performance.now() - startTime);
+                
+                statusEl.innerText = `${response.status} ${response.statusText}`;
+                statusEl.className = `status-badge ${response.ok ? 'status-success' : 'status-error'}`;
+                statusEl.style.display = 'inline-block';
+                
+                timeEl.innerText = `${duration}ms`;
+                timeEl.style.display = 'inline-block';
+
+                const data = await response.json();
+                rawResponseText = JSON.stringify(data, null, 2);
+                outputEl.innerHTML = syntaxHighlight(data);
+                copyBtn.style.display = 'inline-block';
+            } catch (err) {
+                const duration = Math.round(performance.now() - startTime);
+                statusEl.innerText = 'FETCH ERROR';
+                statusEl.className = 'status-badge status-error';
+                statusEl.style.display = 'inline-block';
+                
+                timeEl.innerText = `${duration}ms`;
+                timeEl.style.display = 'inline-block';
+                
+                outputEl.innerText = `Network or Server Error:\n${err.message}`;
+            }
+        }
+
+        function copyResponse() {
+            if (!rawResponseText) return;
+            navigator.clipboard.writeText(rawResponseText).then(() => {
+                const btn = document.getElementById('copy-response-btn');
+                btn.innerText = 'Copied!';
+                setTimeout(() => {
+                    btn.innerText = 'Copy JSON';
+                }, 2000);
+            });
+        }
+
+        function syntaxHighlight(json) {
+            if (typeof json !== 'string') {
+                json = JSON.stringify(json, undefined, 2);
+            }
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // Initialize first form
+        selectEndpoint('home');
+    </script>
+</body>
+</html>
