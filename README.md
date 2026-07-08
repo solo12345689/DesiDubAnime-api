@@ -32,10 +32,10 @@ To build a fully functional streaming application, query the endpoints in the fo
 
 ```mermaid
 graph TD
-    A["1. Discovery: Search, Home, A-Z, or Language"] -->|Extracts anime detail 'slug'| B["2. Metadata: GET /api/anime/{slug}"]
-    B -->|Extracts season numeric 'postId'| C["3. Episode List: GET /api/anime/{slug}/episodes"]
-    C -->|Extracts episode watch 'slug'| D["4. Stream Decoder: GET /api/watch/{episode_slug}"]
-    D -->|Extracts final watchable url| E["5. Play Video inside Iframe"]
+    A[1. Discovery: Search, Home, A-Z, or Language] -->|Extracts anime detail slug| B[2. Metadata: GET /api/anime/slug]
+    B -->|Extracts season numeric postId| C[3. Episode List: GET /api/anime/slug/episodes]
+    C -->|Extracts episode watch slug| D[4. Stream Decoder: GET /api/watch/episode_slug]
+    D -->|Extracts final watchable url| E[5. Play Video inside Iframe]
 ```
 
 ### Step 1: Discover Anime (Get `slug`)
