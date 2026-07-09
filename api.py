@@ -592,16 +592,30 @@ async def get_instant_search(query: str = Query(..., description="Query keyword"
 @app.get("/api/search/advanced")
 async def get_advanced_search(
     q: str = Query("", description="Search keyword"),
+    genres: Optional[List[str]] = Query(None, alias="genre[]", description="Genre slugs"),
+    producers: Optional[List[str]] = Query(None, alias="producer[]", description="Producer slugs"),
+    seasons: Optional[List[str]] = Query(None, alias="season[]", description="Seasons (winter, spring, summer, fall)"),
+    years: Optional[List[str]] = Query(None, alias="year[]", description="Premiered years"),
+    orderby: str = Query("date", description="Sort key (date, popular, title, rating)"),
+    order: str = Query("DESC", description="Sort order (ASC, DESC)"),
     page: int = Query(1, description="Page index")
 ):
-    # Form-encode WordPress payload as dictionary supporting only query and page
     form_data = {
         "action": "advanced_search",
         "page": str(page),
         "s_keyword": q,
-        "orderby": "date",
-        "order": "DESC"
+        "orderby": orderby,
+        "order": order
     }
+    
+    if genres:
+        form_data["genre[]"] = genres
+    if producers:
+        form_data["producer[]"] = producers
+    if seasons:
+        form_data["season[]"] = seasons
+    if years:
+        form_data["year[]"] = years
         
     adv_headers = HEADERS.copy()
     adv_headers["Referer"] = f"{BASE_URL}search/"

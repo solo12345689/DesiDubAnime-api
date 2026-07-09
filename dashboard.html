@@ -597,7 +597,8 @@
                 path: '/api/search/advanced',
                 desc: 'Search the database using a query string with page counts.',
                 fields: [
-                    { name: 'q', type: 'query', label: 'Search Keyword', default: 'slime' },
+                    { name: 'q', type: 'query', label: 'Search Keyword', default: '' },
+                    { name: 'genre[]', type: 'query', label: 'Genre Filter (e.g. action)', default: '' },
                     { name: 'page', type: 'query', label: 'Page Index', default: '1' }
                 ]
             },
