@@ -539,7 +539,8 @@
                 path: '/api/az-list',
                 desc: 'List all animes matching a letter or digit filter.',
                 fields: [
-                    { name: 'letter', type: 'query', label: 'Filter Letter (A-Z, 0-9, or other)', default: 'B' }
+                    { name: 'letter', type: 'query', label: 'Filter Letter (A-Z, 0-9, or other, or all)', default: 'B' },
+                    { name: 'page', type: 'query', label: 'Page Index', default: '1' }
                 ]
             },
             languages: {

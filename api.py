@@ -5,13 +5,53 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
+import time
+from functools import wraps
+
+global_client = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global global_client
+    global_client = httpx.AsyncClient(headers=HEADERS, timeout=20)
+    yield
+    await global_client.aclose()
+
+@asynccontextmanager
+async def get_client(headers=None):
+    if headers:
+        async with httpx.AsyncClient(headers=headers, timeout=20) as temp_client:
+            yield temp_client
+    else:
+        yield global_client
+
+def cache_response(ttl: int = 300):
+    cache = {}
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Create a cache key from arguments
+            key = str(args) + str(kwargs)
+            if key in cache:
+                result, timestamp = cache[key]
+                if time.time() - timestamp < ttl:
+                    return result
+            
+            result = await func(*args, **kwargs)
+            cache[key] = (result, time.time())
+            return result
+        return wrapper
+    return decorator
+
 import httpx
 from scrapling import Selector
 
 app = FastAPI(
     title="DesiDubAnime Scraping API",
     description="A scraping-based API to interact with DesiDubAnime data, genres, searches, A-Z lists, anime details, episodes, and decoded iframe server URLs.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Enable CORS for easy integration
@@ -206,8 +246,9 @@ def parse_popular_list(ul_element):
     return items
 
 @app.get("/api/home")
+@cache_response(ttl=300)
 async def get_home():
-    async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+    async with get_client() as client:
         try:
             r = await client.get(BASE_URL)
             if r.status_code != 200:
@@ -315,9 +356,22 @@ async def get_home():
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/az-list")
-async def get_az_list(letter: str = Query(..., description="Letter A to Z, 0-9, or 'other'")):
-    url = f"{BASE_URL}az-list/?letter={letter}"
-    async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+@cache_response(ttl=300)
+async def get_az_list(
+    letter: str = Query(..., description="Letter A to Z, 0-9, 'other', or 'all'"),
+    page: int = Query(1, description="Page number")
+):
+    if page > 1:
+        base_path = f"{BASE_URL}az-list/page/{page}/"
+    else:
+        base_path = f"{BASE_URL}az-list/"
+        
+    if letter.lower() == "all":
+        url = base_path
+    else:
+        url = f"{base_path}?letter={letter}"
+        
+    async with get_client() as client:
         try:
             r = await client.get(url)
             if r.status_code != 200:
@@ -362,14 +416,28 @@ async def get_az_list(letter: str = Query(..., description="Letter A to Z, 0-9, 
                     "poster": poster
                 })
                 
-            return {"letter": letter, "results": anime_list}
+            page_nums = [1]
+            for page_el in sel.css(".page-numbers::text").getall():
+                try:
+                    num = int(page_el.strip())
+                    page_nums.append(num)
+                except ValueError:
+                    pass
+            max_pages = max(page_nums)
+                
+            return {
+                "letter": letter, 
+                "results": anime_list,
+                "max_pages": max_pages,
+                "current_page": page
+            }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/anime/{slug}")
 async def get_anime_detail(slug: str):
     url = f"{BASE_URL}anime/{slug}/"
-    async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+    async with get_client() as client:
         try:
             r = await client.get(url)
             if r.status_code != 200:
@@ -459,7 +527,7 @@ async def get_episodes(
         "page": str(page),
         "order": order
     }
-    async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+    async with get_client() as client:
         try:
             r = await client.get(AJAX_URL, params=params)
             if r.status_code != 200:
@@ -500,7 +568,7 @@ async def get_episodes(
 @app.get("/api/watch/{episode_slug}")
 async def get_episode_watch_servers(episode_slug: str):
     url = f"{BASE_URL}watch/{episode_slug}/"
-    async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+    async with get_client() as client:
         try:
             r = await client.get(url)
             if r.status_code != 200:
@@ -552,7 +620,7 @@ async def get_instant_search(query: str = Query(..., description="Query keyword"
         "action": "instant_search",
         "query": query
     }
-    async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+    async with get_client() as client:
         try:
             r = await client.get(AJAX_URL, params=params)
             if r.status_code != 200:
@@ -620,7 +688,7 @@ async def get_advanced_search(
     adv_headers = HEADERS.copy()
     adv_headers["Referer"] = f"{BASE_URL}search/"
     
-    async with httpx.AsyncClient(headers=adv_headers, timeout=20) as client:
+    async with get_client(headers=adv_headers) as client:
         try:
             r = await client.post(AJAX_URL, data=form_data)
             if r.status_code != 200:
@@ -643,6 +711,7 @@ async def get_advanced_search(
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/languages")
+@cache_response(ttl=300)
 async def get_languages():
     return [
         {"name": "Hindi", "slug": "hindi"},
@@ -656,6 +725,7 @@ async def get_languages():
     ]
 
 @app.get("/api/language/{slug}")
+@cache_response(ttl=300)
 async def get_language_tag(
     slug: str,
     page: int = Query(1, description="Page number")
@@ -664,7 +734,7 @@ async def get_language_tag(
     if page > 1:
         url += f"?tag_page={page}"
         
-    async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+    async with get_client() as client:
         try:
             r = await client.get(url)
             if r.status_code != 200:
