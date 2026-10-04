@@ -452,6 +452,10 @@
                         <span class="badge badge-get">GET</span>
                         <span class="endpoint-path">/api/anime/{slug}</span>
                     </button>
+                    <button class="endpoint-item" onclick="selectEndpoint('recommendations')">
+                        <span class="badge badge-get">GET</span>
+                        <span class="endpoint-path">/api/anime/{post_id}/recom...</span>
+                    </button>
                     <button class="endpoint-item" onclick="selectEndpoint('episodes')">
                         <span class="badge badge-get">GET</span>
                         <span class="endpoint-path">/api/anime/{slug}/episodes</span>
@@ -564,6 +568,14 @@
                 desc: 'Fetch full metadata details, synopsis, season relations, post ID and tags for a specific anime.',
                 fields: [
                     { name: 'slug', type: 'path', label: 'Anime Slug', default: 'fire-force' }
+                ]
+            },
+            recommendations: {
+                method: 'GET',
+                path: '/api/anime/{post_id}/recommendations',
+                desc: 'Fetch anime recommendations dynamically using the specific Post ID.',
+                fields: [
+                    { name: 'post_id', type: 'path', label: 'Post ID (Found in detail response)', default: '564' }
                 ]
             },
             episodes: {

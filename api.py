@@ -2,7 +2,7 @@ import base64
 import json
 import re
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
@@ -532,6 +532,27 @@ async def get_anime_detail(slug: str):
                 "metadata": metadata,
                 "seasons": seasons
             }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/anime/{post_id}/recommendations")
+@cache_response(ttl=300)
+async def get_anime_recommendations(post_id: str = Path(..., description="Post ID from anime details")):
+    url = f"{BASE_URL}wp-json/kiranime/v1/widget?name=recommended&id={post_id}"
+    async with get_client() as client:
+        try:
+            r = await client.get(url)
+            if r.status_code != 200:
+                raise HTTPException(status_code=r.status_code, detail="Failed to fetch recommendations")
+            
+            data = r.json()
+            if not data.get("status") or not data.get("result"):
+                return {"recommendations": []}
+                
+            sel = Selector(data["result"])
+            recommendations = parse_card_list(sel.css(".anime-card"))
+            
+            return {"recommendations": recommendations}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
