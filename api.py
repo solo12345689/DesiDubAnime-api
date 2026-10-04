@@ -245,6 +245,26 @@ def parse_popular_list(ul_element):
         })
     return items
 
+nonce_cache = {}
+nonce_cache_time = 0
+
+async def get_search_nonce(client: httpx.AsyncClient):
+    global nonce_cache, nonce_cache_time
+    if time.time() - nonce_cache_time < 3600 and "search_actions" in nonce_cache:
+        return nonce_cache["search_actions"]
+    
+    try:
+        r = await client.get(BASE_URL)
+        match = re.search(r'\"search_actions\"\s*:\s*\"([^\"]+)\"', r.text)
+        if match:
+            nonce = match.group(1)
+            nonce_cache["search_actions"] = nonce
+            nonce_cache_time = time.time()
+            return nonce
+    except:
+        pass
+    return ""
+
 @app.get("/api/home")
 @cache_response(ttl=300)
 async def get_home():
@@ -435,6 +455,7 @@ async def get_az_list(
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/anime/{slug}")
+@cache_response(ttl=300)
 async def get_anime_detail(slug: str):
     url = f"{BASE_URL}anime/{slug}/"
     async with get_client() as client:
@@ -515,6 +536,7 @@ async def get_anime_detail(slug: str):
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/anime/{slug}/episodes")
+@cache_response(ttl=300)
 async def get_episodes(
     slug: str,
     postId: str = Query(..., description="Post ID / Season ID"),
@@ -566,6 +588,7 @@ async def get_episodes(
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/watch/{episode_slug}")
+@cache_response(ttl=300)
 async def get_episode_watch_servers(episode_slug: str):
     url = f"{BASE_URL}watch/{episode_slug}/"
     async with get_client() as client:
@@ -594,14 +617,21 @@ async def get_episode_watch_servers(episode_slug: str):
                     })
                     
             # Check for GDMirrorBot embeds to fetch other mirrors dynamically
+            tasks = []
             for s in list(servers):
                 embed_url = s.get("url", "")
                 if "gdmirrorbot.nl" in embed_url:
                     sid_match = re.search(r'/embed/([^/]+)', embed_url)
                     if sid_match:
                         sid = sid_match.group(1)
-                        mirrors = await fetch_embedhelper_sources(client, sid)
-                        for m in mirrors:
+                        tasks.append(fetch_embedhelper_sources(client, sid))
+                        
+            if tasks:
+                import asyncio
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for res in results:
+                    if isinstance(res, list):
+                        for m in res:
                             # Avoid duplicates
                             if not any(x.get("url") == m["url"] for x in servers):
                                 servers.append(m)
@@ -615,12 +645,18 @@ async def get_episode_watch_servers(episode_slug: str):
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/search/instant")
+@cache_response(ttl=300)
 async def get_instant_search(query: str = Query(..., description="Query keyword")):
-    params = {
-        "action": "instant_search",
-        "query": query
-    }
-    async with get_client() as client:
+    inst_headers = HEADERS.copy()
+    inst_headers["X-Requested-With"] = "XMLHttpRequest"
+    async with get_client(headers=inst_headers) as client:
+        nonce = await get_search_nonce(client)
+        params = {
+            "action": "instant_search",
+            "query": query,
+            "nonce": nonce,
+            "security": nonce
+        }
         try:
             r = await client.get(AJAX_URL, params=params)
             if r.status_code != 200:
@@ -658,6 +694,7 @@ async def get_instant_search(query: str = Query(..., description="Query keyword"
             raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/search/advanced")
+@cache_response(ttl=300)
 async def get_advanced_search(
     q: str = Query("", description="Search keyword"),
     genres: Optional[List[str]] = Query(None, alias="genre[]", description="Genre slugs"),
@@ -687,8 +724,12 @@ async def get_advanced_search(
         
     adv_headers = HEADERS.copy()
     adv_headers["Referer"] = f"{BASE_URL}search/"
+    adv_headers["X-Requested-With"] = "XMLHttpRequest"
     
     async with get_client(headers=adv_headers) as client:
+        nonce = await get_search_nonce(client)
+        form_data["nonce"] = nonce
+        form_data["security"] = nonce
         try:
             r = await client.post(AJAX_URL, data=form_data)
             if r.status_code != 200:
