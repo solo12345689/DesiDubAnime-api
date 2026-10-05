@@ -829,10 +829,10 @@ async def get_random_anime():
     letters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
     selected_letter = random.choice(letters)
     try:
-        data = await get_az_list(letter=selected_letter)
+        data = await get_az_list(letter=selected_letter, page=1)
         results = data.get("results", [])
         if not results:
-            data = await get_az_list(letter="A")
+            data = await get_az_list(letter="A", page=1)
             results = data.get("results", [])
         
         if results:
